@@ -2,12 +2,9 @@ package com.foc.pmdm.game;
 
 
 import com.badlogic.gdx.Game;
-import com.badlogic.gdx.assets.AssetManager;
-import com.badlogic.gdx.audio.Music;
-import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.foc.pmdm.game.Screens.GameScreen;
-import com.sun.org.apache.xpath.internal.operations.String;
+
 /**
  * Created by entreri on 16/04/17.
  */
@@ -26,16 +23,9 @@ public class LibGDXGame extends Game {
     public static final short ENEMY_BIT = 64;
 	public static final short ENEMY_HEAD_HIT = 128;
 	public static final short ITEM_BIT = 256;
-	//Variables para la Musica y efectos.
-	private final java.lang.String MARIO_MUSIC = "audio/music/mario_music.ogg";
-	private final java.lang.String MARIO_BUMP = "audio/sounds/bump.wav";
-	private final java.lang.String MARIO_BREAK = "audio/sounds/breakblock.wav";
-	private final java.lang.String MARIO_COIN = "audio/sounds/coin.wav";
+	public static final short MARIO_HEAD_BIT = 512;
 
-	/**
-	 * OJO! No usar en la version final los ASSETMANAGER en STATIC!! En Android perjudicara el rendimiento.
-	 */
-	private AssetManager assetManager;
+
 
 	/**
 	 * Metodo encargado de crear la pantalla del juego y empezar a dibujar.
@@ -43,16 +33,8 @@ public class LibGDXGame extends Game {
 	@Override
 	public void create () {
 		batch = new SpriteBatch();
-		prepareManager();//Preparamos sonidos..
+
 		setScreen(new GameScreen(this));//Le pasamos el mismo juego en si de pantalla.
-	}
-	/**
-	 * Metodo encargado de preparar la musica del juego.
-	 */
-	public void prepareManager (){
-		assetManager = new AssetManager();
-		assetManager.load(MARIO_MUSIC,Music.class);
-		assetManager.finishLoading();
 	}
 
 	/**
@@ -61,7 +43,7 @@ public class LibGDXGame extends Game {
 	@Override
 	public void render () {
 		super.render();//Delegamos el renderizado al constructor padre de juego (Game).
-		assetManager.update();
+
 	}
 
 	/**
@@ -71,31 +53,9 @@ public class LibGDXGame extends Game {
 	public void dispose () {
 		super.dispose();
         batch.dispose();
-        assetManager.dispose();
-
-	}
-	/**
-	 *
-	 * @return
-	 */
-	public AssetManager getAssetManager() {
-		return assetManager;
 	}
 
-	public java.lang.String getMARIO_MUSIC() {
-		return MARIO_MUSIC;
-	}
 
-	public java.lang.String getMARIO_BUMP() {
-		return MARIO_BUMP;
-	}
 
-	public java.lang.String getMARIO_BREAK() {
-		return MARIO_BREAK;
-	}
-
-	public java.lang.String getMARIO_COIN() {
-		return MARIO_COIN;
-	}
 
 }

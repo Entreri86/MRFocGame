@@ -2,6 +2,8 @@ package com.foc.pmdm.game.Sprites.TileObjects;
 
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.maps.MapObject;
+import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TiledMapTile;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
@@ -25,7 +27,7 @@ public abstract class InteractiveTileObject {
     //Variables para el mundo y mapa.
     protected World world;
     protected TiledMap tiledMap;
-    protected TiledMapTile tiledMapTile;
+    protected MapObject object;
     //Variables para las formas y texturas.
     protected Rectangle bounds;
     protected Body body;
@@ -37,13 +39,14 @@ public abstract class InteractiveTileObject {
      * Constructor encargado de inicializar los atributos, fijar las posiciones de los objetos a crear y la
      * fisica de los mismos.
      * @param screen referencia a la pantalla donde mostrar los objetos.
-     * @param rBounds forma con la que se cubrira el objeto (para la fisica).
+     * @param object forma con la que se cubrira el objeto (para la fisica).
      */
-    public InteractiveTileObject (GameScreen screen, Rectangle rBounds){
+    public InteractiveTileObject (GameScreen screen, MapObject object){
         this.screen = screen;
         this.world = screen.getWorld();
         this.tiledMap = screen.getTiledMap();
-        this.bounds = rBounds;
+        this.object = object;
+        this.bounds = ((RectangleMapObject)object).getRectangle();
         game = new LibGDXGame();
         BodyDef bodyDef = new BodyDef();
         FixtureDef fixtureDef = new FixtureDef();
@@ -53,11 +56,11 @@ public abstract class InteractiveTileObject {
          * Fijamos las posiciones del eje X e eje Y extrayendo del rectangulo la posicion y ajustandola al centro,
          * escalandola por Pixeles Por Metro.
          */
-        bodyDef.position.set((rBounds.getX() + rBounds.getWidth()/2)/ LibGDXGame.PPM, (rBounds.getY() + rBounds.getHeight()/2)/ LibGDXGame.PPM);
+        bodyDef.position.set((bounds.getX() + bounds.getWidth()/2)/ LibGDXGame.PPM, (bounds.getY() + bounds.getHeight()/2)/ LibGDXGame.PPM);
         //Iniciamos el body (monedas en este caso) con la configuracion del BodyDef.
         body = world.createBody(bodyDef);
         //Configuramos la forma en modo cuadrado ajustandolo al centro y escalando la imagen.
-        shape.setAsBox((rBounds.getWidth()/2)/ LibGDXGame.PPM,(rBounds.getHeight()/2)/ LibGDXGame.PPM);
+        shape.setAsBox((bounds.getWidth()/2)/ LibGDXGame.PPM,(bounds.getHeight()/2)/ LibGDXGame.PPM);
         //Asignamos al objeto la forma.
         fixtureDef.shape = shape;
         //Finalmente creamos la forma.

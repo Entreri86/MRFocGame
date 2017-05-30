@@ -2,9 +2,11 @@ package com.foc.pmdm.game.Screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
@@ -14,6 +16,15 @@ import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.scenes.scene2d.Action;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
+import com.badlogic.gdx.scenes.scene2d.ui.Button;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
@@ -57,17 +68,29 @@ public class GameScreen implements Screen {
     //Variables para Items.
     private Array<Item> items;
     private LinkedBlockingQueue<ItemDefinition> itemsToSpawn;
-
+    private Button buttonIzq;
+    private Button buttonDer;
+    private Button buttonJum;
+    private Table gamePadTable;
+    //Variables para la Musica y efectos.
+    private final java.lang.String MARIO_MUSIC = "audio/music/mario_music.ogg";
+    private final java.lang.String MARIO_BUMP = "audio/sounds/bump.wav";
+    private final java.lang.String MARIO_BREAK = "audio/sounds/breakblock.wav";
+    private final java.lang.String MARIO_COIN = "audio/sounds/coin.wav";
+    private final java.lang.String MARIO_MUSHROOM_PW = "audio/sounds/powerup.wav";
+    private final java.lang.String MARIO_MUSHROOM = "audio/sounds/powerup_spawn.wav";
+    private AssetManager manager;
 
     /**
      * Constructor encargado de inicializar todos los atributos necesarios para mostrar en pantalla los
      * objetos relacionados con el juego.
      * @param game instancia del juego en la cual hay que cargar los objetos.
      */
-    public GameScreen (LibGDXGame game){
-
+    public GameScreen (LibGDXGame game) {
+        prepareMusic();//Preparamos musica.
         atlas = new TextureAtlas("Mario_and_Enemies.pack");//Paquete con los tileset de los Enemigos y Mario.
-        this.lGame = game;
+        this.lGame =game;
+
         //Creamos la camara utilizada para seguir al personaje alrededor del mapa.
         oCamGame = new OrthographicCamera();
         /**
@@ -78,6 +101,10 @@ public class GameScreen implements Screen {
         gamePort = new FitViewport(LibGDXGame.V_WIDHT / LibGDXGame.PPM,LibGDXGame.V_HEIGHT / LibGDXGame.PPM,oCamGame);
         //Le pasamos el Sprite por parametro,donde iran los marcadores de puntuaciones y nivel.
         userInterface = new UI(lGame.batch);
+        //////////////////////////////////////////////
+        prepareButtons();//Preparamos los botones
+        userInterface.addActor(gamePadTable);//los añadimos al stage que hara de inputListener.
+        ///////////////////////////////////////////////
         //Cargamos el mapa y preparamos el renderizado.
         tmxMapLoader = new TmxMapLoader();
         tiledMap = tmxMapLoader.load("level1.tmx");
@@ -90,9 +117,10 @@ public class GameScreen implements Screen {
         player = new Mario (this);//Pasamos la pantalla por parametro.
         //Listener de colisiones y contactos.
         world.setContactListener(new WorldContactListener());
-        prepareMusic();//Preparamos musica.
+
         items = new Array<Item>();
         itemsToSpawn = new LinkedBlockingQueue<ItemDefinition>();
+
     }
 
     /**
@@ -123,14 +151,21 @@ public class GameScreen implements Screen {
      * Metodo encargado de preparar el gestor de musica con la musica del juego.
      */
     public void prepareMusic (){
-        AssetManager manager = lGame.getAssetManager();
-        music = manager.get(lGame.getMARIO_MUSIC(),Music.class);
+        manager = new AssetManager();
+        manager.load(MARIO_MUSIC,Music.class);
+        manager.load(MARIO_BREAK,Sound.class);//Brick.java
+        manager.load(MARIO_BUMP,Sound.class);//Coin.java
+        manager.load(MARIO_COIN,Sound.class);//Coin.java
+        manager.load(MARIO_MUSHROOM,Sound.class);//Seta al recogerla
+        manager.load(MARIO_MUSHROOM_PW,Sound.class);//Creciendo a mario.
+        manager.finishLoading();
+        music = manager.get(MARIO_MUSIC,Music.class);
         music.setLooping(true);
         music.play();
     }
 
     /**
-     * Metodo encargado de gestionar los movimientos que realiza el usuario mediante toques de pantalla o uso
+     * Metodo encargado de gestionar los movimientos que realiza el usuario mediante uso
      * de un teclado.
      */
     public void handleInput (float deltaTime){//Float deltaTime no usado de momento.
@@ -152,9 +187,67 @@ public class GameScreen implements Screen {
              */
             player.b2body.applyLinearImpulse(new Vector2(-0.8f,0),player.b2body.getWorldCenter(),true);
         }
-
     }
 
+    /**
+     * Metodo encargado de preparar y gestionar los botones y sus toques en la pantalla.
+     */
+    public void prepareButtons(){
+        //Creamos el skin de los botones recogiendo el fichero json
+        Skin mySkin = new Skin(Gdx.files.internal("skin/glassy-ui.json"));
+        //Creamos nueva tabla para los botones del "gamepad rustico"
+        gamePadTable = new Table();
+        gamePadTable.bottom();//Centrado en la parte inferior
+        gamePadTable.setFillParent(true);//Expandido como el padre.
+
+        buttonDer  = new TextButton("Der.",mySkin,"small");
+        buttonDer.addListener(new InputListener(){
+            @Override
+            public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
+                //NADA no es necesario en este uso
+            }
+            @Override
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                if (buttonDer.isPressed()==true){
+                    player.b2body.applyLinearImpulse(new Vector2(0.8f,0),player.b2body.getWorldCenter(),true);
+                }
+                return true;
+            }
+        });
+        buttonIzq  = new TextButton("Izq.",mySkin,"small");
+        buttonIzq.addListener(new InputListener(){
+            @Override
+            public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
+                //NADA no es necesario en este uso
+            }
+            @Override
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                if (buttonIzq.isPressed()==true){
+                    player.b2body.applyLinearImpulse(new Vector2(-0.8f,0),player.b2body.getWorldCenter(),true);
+                }
+                return true;
+            }
+        });
+        buttonJum  = new TextButton("Saltar",mySkin,"small");
+        buttonJum.addListener(new InputListener(){
+            @Override
+            public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
+                //NADA no es necesario en este uso
+            }
+            @Override
+            public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+                if (buttonJum.isPressed()==true){
+                    player.b2body.applyLinearImpulse(new Vector2(0 , 4f), player.b2body.getWorldCenter(),true);
+                }
+                return true;
+            }
+        });
+        //Iniciamos los botones..
+        gamePadTable.add(buttonIzq).height(35).width(50).align(Align.left).padBottom(5);
+        gamePadTable.add(buttonDer).height(35).width(50).expandX().padBottom(5).align(Align.left);
+        gamePadTable.add(buttonJum).height(35).width(50).expandX().padBottom(5).align(Align.right);
+        //Añadimos los botones con las posiciones y tamaños personalizados.
+    }
     /**
      * Metodo encargado en cada iteracion de actualizar los datos, enemigos y objetos mostrados en pantalla.
      * @param deltaTime valor para el calculo del tiempo de actualizacion.
@@ -270,6 +363,9 @@ public class GameScreen implements Screen {
         userInterface.dispose();
     }
 
+    public AssetManager getManager() {
+        return manager;
+    }
     public TiledMap getTiledMap (){
         return tiledMap;
     }
@@ -278,5 +374,27 @@ public class GameScreen implements Screen {
     }
     public TextureAtlas getAtlas (){
         return atlas;
+    }
+
+    public java.lang.String getMARIO_MUSIC() {
+        return MARIO_MUSIC;
+    }
+
+    public java.lang.String getMARIO_BUMP() {
+        return MARIO_BUMP;
+    }
+
+    public java.lang.String getMARIO_BREAK() {
+        return MARIO_BREAK;
+    }
+
+    public java.lang.String getMARIO_COIN() {
+        return MARIO_COIN;
+    }
+    public String getMARIO_MUSHROOM() {
+        return MARIO_MUSHROOM;
+    }
+    public String getMARIO_MUSHROOM_PW() {
+        return MARIO_MUSHROOM_PW;
     }
 }

@@ -3,6 +3,7 @@ package com.foc.pmdm.game.Sprites.TileObjects;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.tiled.TiledMapTileSet;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
@@ -19,6 +20,9 @@ import com.foc.pmdm.game.Sprites.Items.Mushroom;
 public class Coin extends InteractiveTileObject {
 
     private AssetManager assetManager;
+    private Sound marioBump;
+    private Sound marioCoin;
+    private Sound marioMushroom;
     private static TiledMapTileSet tileSet;
     private final int BLANK_COIN_ID = 28;
     //Posicion con ID en tileset_gutter num 27, aqui empieza la cuenta desde 1 y no desde 0 por eso se suma uno mas.
@@ -26,13 +30,17 @@ public class Coin extends InteractiveTileObject {
     /**
      * Constructor de la clase encargado de inicializar los atributos, fisica, preparar la textura del objeto
      * a mostrar.
-     * @param rBounds forma con la que se cubrira el objeto (para la fisica).
+     * @param object forma con la que se cubrira el objeto (para la fisica).
      */
-    public Coin(GameScreen screen, Rectangle rBounds) {
-        super(screen, rBounds);
+    public Coin(GameScreen screen, MapObject object) {
+        super(screen, object);
         tileSet = tiledMap.getTileSets().getTileSet("tileset_gutter");
         fixture.setUserData(this);//Asignamos datos personalizados para el objeto.
-        prepareManager ();//Musica
+        assetManager = screen.getManager();
+        //Cargamos los sonidos...
+        marioBump = assetManager.get(screen.getMARIO_BUMP(),Sound.class);
+        marioCoin = assetManager.get(screen.getMARIO_COIN(),Sound.class);
+        marioMushroom = assetManager.get(screen.getMARIO_MUSHROOM(),Sound.class);
         setCategoryFilter(LibGDXGame.COIN_BIT);//Asignamos categoria de bits.
     }
 
@@ -44,25 +52,20 @@ public class Coin extends InteractiveTileObject {
     public void onHeadHit() {
         Gdx.app.log("Moneda","Colision");
         if (getCell().getTile().getId() == BLANK_COIN_ID){
-            assetManager.get(game.getMARIO_BUMP(),Sound.class).play();//Cuando golpee el bloque reproducimos sonido.
+            marioBump.play();//Cuando golpee el bloque reproducimos sonido.
         } else {
-            assetManager.get(game.getMARIO_COIN(),Sound.class).play();//Cuando golpee el bloque con monedas reproducimos sonido.
-            screen.spawnItem(new ItemDefinition(new Vector2(body.getPosition().x,
-                    body.getPosition().y + 16 /LibGDXGame.PPM), Mushroom.class));
-            //Cuando golpee suelta la seta 16 pixeles escalados en el eje Y mas arriba del bloque.
+            if (object.getProperties().containsKey("mushroom")){//Si el objecto de tileObject tiene una seta...
+                screen.spawnItem(new ItemDefinition(new Vector2(body.getPosition().x,
+                        body.getPosition().y + 16 /LibGDXGame.PPM), Mushroom.class));
+                //Cuando golpee suelta la seta 16 pixeles escalados en el eje Y mas arriba del bloque.
+                marioMushroom.play();
+            }
+            marioCoin.play();//Cuando golpee el bloque con monedas reproducimos sonido.
+
         }
         getCell().setTile(tileSet.getTile(BLANK_COIN_ID));//Asignamos bloque vacio.
         UI.addScore(200);//Añadimos puntuacion.
     }
 
-    /**
-     * Método encargado de iniciar el AssetManager para reproducir el sonido, temporal en la tarea global se
-     * pasara por referencias.
-     */
-    public void prepareManager (){
-        assetManager = new AssetManager();
-        assetManager.load(game.getMARIO_BUMP(),Sound.class);
-        assetManager.load(game.getMARIO_COIN(),Sound.class);
-        assetManager.finishLoading();
-    }
+
 }

@@ -3,6 +3,7 @@ package com.foc.pmdm.game.Sprites.TileObjects;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.math.Rectangle;
 import com.foc.pmdm.game.LibGDXGame;
 import com.foc.pmdm.game.Scenes.UI;
@@ -15,16 +16,19 @@ import com.foc.pmdm.game.Screens.GameScreen;
 public class Brick extends InteractiveTileObject {
     //Asset para el sonido del objeto, temporal en la tarea global pasar por referencias.
     private AssetManager assetManager;
+    private Sound marioBreak;
     /**
      * Constructor encargado de inicializar los atributos y preparar la textura del objeto a mostrar
      * mediante llamadas a otros metodos.
      * @param screen referencia a la pantalla donde debe de ser mostrado el objeto.
-     * @param rBounds forma con la que se cubrira el objeto (para la fisica).
+     * @param object forma con la que se cubrira el objeto (para la fisica).
      */
-    public Brick(GameScreen screen, Rectangle rBounds) {
-        super(screen, rBounds);
+    public Brick(GameScreen screen, MapObject object) {
+        super(screen, object);
         fixture.setUserData(this);//Asignamos datos personalizados para el objeto.
-        prepareManager ();//Musica
+        assetManager = screen.getManager();
+        marioBreak = assetManager.get(screen.getMARIO_BREAK(),Sound.class);
+        //prepareManager ();//Musica
         setCategoryFilter(LibGDXGame.BRICK_BIT);//Asignamos categoria de bits.
     }
 
@@ -38,7 +42,7 @@ public class Brick extends InteractiveTileObject {
         setCategoryFilter(LibGDXGame.DESTROY_BIT);//Marcamos el filtro para que no se pueda volver a colisionar con el objeto
         getCell().setTile(null); //Borramos el objeto colisionado.
         UI.addScore(100);//Subimos puntuacion.
-        assetManager.get(game.getMARIO_BREAK(),Sound.class).play();//Cuando golpee el bloque reproducimos sonido.
+        marioBreak.play();//Cuando golpee el bloque reproducimos sonido.
     }
 
     /**
@@ -47,7 +51,7 @@ public class Brick extends InteractiveTileObject {
      */
     public void prepareManager (){
         assetManager = new AssetManager();
-        assetManager.load(game.getMARIO_BREAK(),Sound.class);//Cargamos sonido...
+        //assetManager.load(game.getMARIO_BREAK(),Sound.class);//Cargamos sonido...
         assetManager.finishLoading();//finalizamos carga...
     }
 }

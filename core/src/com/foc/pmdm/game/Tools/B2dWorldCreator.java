@@ -81,13 +81,13 @@ public class B2dWorldCreator {
         //Bloques rompibles
         for (MapObject object : tiledMap.getLayers().get(5).getObjects().getByType(RectangleMapObject.class)){
 
-            Rectangle rectangle = ((RectangleMapObject) object).getRectangle();
-            new Brick(screen,rectangle);
+
+            new Brick(screen,object);
         }
         //Monedas
         for (MapObject object : tiledMap.getLayers().get(4).getObjects().getByType(RectangleMapObject.class)){
-            Rectangle rectangle = ((RectangleMapObject) object).getRectangle();
-            new Coin(screen,rectangle);
+
+            new Coin(screen,object);
         }
         //Goombas
         goombas = new Array<Goomba>();
