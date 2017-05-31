@@ -203,7 +203,6 @@ public class GameScreen implements Screen {
      * Metodo encargado de preparar y gestionar los botones y sus toques en la pantalla.
      */
     public void prepareButtons(){
-        //TODO: video 27 muerte de mario 6:53.
         //Creamos el skin de los botones recogiendo el fichero json
         Skin mySkin = new Skin(Gdx.files.internal("skin/glassy-ui.json"));
         //Creamos nueva tabla para los botones del "gamepad rustico"

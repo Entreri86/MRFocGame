@@ -27,7 +27,6 @@ public class Goomba extends Enemy {
     private boolean setToDestroy;
     private boolean destroyed;
     private Sound goombaHit;
-
     /**
      * Constructor encargado de llamar al constructor padre (Enemy) y de fijar los valores por defecto de
      * los enemigos a mostrar.
@@ -47,7 +46,6 @@ public class Goomba extends Enemy {
         setBounds(getX(),getY(), 16/LibGDXGame.PPM,16/LibGDXGame.PPM);
         setToDestroy = false;
         destroyed = false;
-
     }
 
     /**
@@ -78,12 +76,10 @@ public class Goomba extends Enemy {
      */
     @Override
     protected void defineEnemy() {
-
         BodyDef bdef = new BodyDef();
         bdef.position.set(getX(),getY());//Temporal la posicion.
         bdef.type = BodyDef.BodyType.DynamicBody;
         b2body = world.createBody(bdef);
-
         //Capa con forma que envuelve al goomba para las colisiones etc.
         FixtureDef fixtureDef = new FixtureDef();
         CircleShape shape = new CircleShape();

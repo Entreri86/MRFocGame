@@ -25,9 +25,6 @@ public class LibGDXGame extends Game {
 	public static final short ENEMY_HEAD_HIT = 128;
 	public static final short ITEM_BIT = 256;
 	public static final short MARIO_HEAD_BIT = 512;
-
-
-
 	/**
 	 * Metodo encargado de crear la pantalla del juego y empezar a dibujar.
 	 */
