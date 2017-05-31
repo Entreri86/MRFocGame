@@ -10,11 +10,15 @@ import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.CircleShape;
 import com.badlogic.gdx.physics.box2d.EdgeShape;
+import com.badlogic.gdx.physics.box2d.Filter;
+import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Array;
 import com.foc.pmdm.game.LibGDXGame;
 import com.foc.pmdm.game.Screens.GameScreen;
+import com.foc.pmdm.game.Sprites.Enemies.Enemy;
+import com.foc.pmdm.game.Sprites.Enemies.Turtle;
 
 /**
  * Created by entreri on 25/04/17.
@@ -22,7 +26,7 @@ import com.foc.pmdm.game.Screens.GameScreen;
 
 public class Mario extends Sprite {
     //Variables relacionadas con los estados de Mario.
-    public enum  States {FALL, JUMP, STAND, RUN,GROWING};
+    public enum  States {FALL, JUMP, STAND, RUN,GROWING,DEAD};
     public States currentState;
     public States previousState;
     //Variables relacionadas con el mundo y el cuerpo de mario.
@@ -32,17 +36,23 @@ public class Mario extends Sprite {
     private TextureRegion marioQuiet;
     private TextureRegion bigMarioStand;
     private TextureRegion bigMarioJump;
+    private TextureRegion marioDead;
     private com.badlogic.gdx.graphics.g2d.Animation bigMarioRun;
     private com.badlogic.gdx.graphics.g2d.Animation growMario;
     //Bools para controlar el crecimiento.
     private boolean marioIsBig;
     private boolean runGrowAnim;
+    private boolean timeToDefineMario;
+    private boolean timeReDefineMario;
+    private boolean marioIsDead;
     private com.badlogic.gdx.graphics.g2d.Animation marioRun;
     private TextureRegion marioJump;
     //Variable relacionada con la direccion de Mario y el tiempo.
     private boolean runRight;
     private float stateTimer;
     private Sound marioPWD;
+    private Sound marioPWDdWn;
+    private Sound marioDie;
     private GameScreen gameScreen;
     /*
      * Constructor encargado de inicializar los atributos y gestionar la fisica, forma, comportamiento
@@ -54,6 +64,8 @@ public class Mario extends Sprite {
         this.world = gameScreen.getWorld();
         this.gameScreen = gameScreen;
         marioPWD = gameScreen.getManager().get(gameScreen.getMARIO_MUSHROOM_PW());//Iniciamos el sonido.
+        marioPWDdWn = gameScreen.getManager().get(gameScreen.getMARIO_PW_DWN());
+        marioDie = gameScreen.getManager().get(gameScreen.getMARIO_DIE());
         /**
          * Iniciamos variables relacionadas con el estado de Mario mediante el Enum States.
          */
@@ -108,6 +120,7 @@ public class Mario extends Sprite {
         marioQuiet = new TextureRegion(gameScreen.getAtlas().findRegion(littleMario),1,0,16,16);
         bigMarioStand = new TextureRegion(gameScreen.getAtlas().findRegion(bigMario),0,0,16,32);
         //Imagen 16x32 pixeles bigMario, empieza en los ejes 0,0.
+        marioDead = new TextureRegion(gameScreen.getAtlas().findRegion(littleMario),96,0,16,16);
         defMario();
         setBounds(0,0,16/LibGDXGame.PPM,16/LibGDXGame.PPM);//Asignamos los bordes con el escalado.
         setRegion(marioQuiet);
@@ -118,8 +131,112 @@ public class Mario extends Sprite {
      * @param deltaTime valor del tiempo.
      */
     public void update (float deltaTime){
-        setPosition(b2body.getPosition().x - getWidth() /2, b2body.getPosition().y - getHeight() /2);
+        if (marioIsBig){
+            setPosition(b2body.getPosition().x - getWidth() /2, b2body.getPosition().y - getHeight() /2-6/LibGDXGame.PPM);
+        } else{
+            setPosition(b2body.getPosition().x - getWidth() /2, b2body.getPosition().y - getHeight() /2);
+        }
         setRegion(getFrame(deltaTime));
+        if (timeToDefineMario){
+            defineBigMario();
+        }
+        if (timeReDefineMario){
+            redefineMario();
+        }
+    }
+
+    /**
+     * Metodo encargado de refefinir el cuerpo del mario pequeño de grande a pequeño.
+     */
+    public void redefineMario(){
+        Vector2 currentPos = b2body.getPosition();
+        world.destroyBody(b2body);
+
+        BodyDef bdef = new BodyDef();
+        bdef.position.set(currentPos);//Temporal la posicion.
+        bdef.type = BodyDef.BodyType.DynamicBody;
+        b2body = world.createBody(bdef);//Creamos el cuerpo de mario...
+        //Capa con forma que envuelve al mario para las colisiones etc.
+        FixtureDef fixtureDef = new FixtureDef();
+        CircleShape shape = new CircleShape();
+        shape.setRadius(6 / LibGDXGame.PPM);
+        fixtureDef.filter.categoryBits = LibGDXGame.MARIO_BIT;//Asignamos la categoria para las colisiones de Mario.
+        //Asignamos con que puede colisionar.
+        fixtureDef.filter.maskBits = LibGDXGame.GROUND_BIT | LibGDXGame.COIN_BIT | LibGDXGame.BRICK_BIT | LibGDXGame.ENEMY_BIT
+                |LibGDXGame.OBJECT_BIT| LibGDXGame.ENEMY_HEAD_HIT | LibGDXGame.ITEM_BIT;
+        fixtureDef.shape = shape;
+        b2body.createFixture(fixtureDef).setUserData(this);//Asignamos la fisica...
+        EdgeShape head = new EdgeShape();
+        //Dos vectores que rodeen la cabeza, desde el eje X -2 (parte trasera de la cabeza) hasta la parte delantera
+        //del sprite de la cabeza X+2 escalado por pixeles por metro.
+        head.set(new Vector2(-2/ LibGDXGame.PPM, 6/LibGDXGame.PPM),new Vector2(2/ LibGDXGame.PPM, 6/LibGDXGame.PPM));
+        fixtureDef.filter.categoryBits = LibGDXGame.MARIO_HEAD_BIT;
+        fixtureDef.shape = head;
+        fixtureDef.isSensor = true;//Definimos un sensor para conocer si colisiona con algun objeto.
+        b2body.createFixture(fixtureDef).setUserData(this);//Asignamos la textura y le damos un nombre.
+        timeReDefineMario = false;
+    }
+
+    /**
+     * Metodo encargado de gestionar la colision de los enemigos con mario.
+     */
+    public void hit (Enemy enemy){
+        if (enemy instanceof Turtle && ((Turtle)enemy).getCurrentState() == Turtle.State.STAND_SHELL){
+            ((Turtle)enemy).kick(this.getX()<= enemy.getX() ? Turtle.KICK_RIGHT_SPEED:Turtle.KICK_LEFT_SPEED);
+        } else {
+            if (marioIsBig){
+                marioIsBig = false;
+                timeReDefineMario = true;
+                setBounds(getX(),getY(),getWidth(),getHeight()/2);
+                marioPWDdWn.play();
+            }else {
+                gameScreen.stopMusic();//Paramos la musica...
+                marioDie.play();//sonido de muerte de mario.
+                marioIsDead = true;//mario esta muerto
+                Filter filter = new Filter();
+                filter.maskBits = LibGDXGame.NOTHING_BIT;//Marcamos el filtro para que no colisione con nada el mario.
+                for (Fixture fixture: b2body.getFixtureList()){
+                    fixture.setFilterData(filter);//Asignamos el filtro.
+                }
+                b2body.applyLinearImpulse(new Vector2(0,4f),b2body.getWorldCenter(),true);
+                //Lo hacemos volar hacia arriba desde el centro del mapa.
+            }
+        }
+    }
+
+    /**
+     * Metodo encargado de la definicion de la fisica, colisiones e interaciones del mario grande con el
+     * mundo del juego.
+     */
+    public void defineBigMario(){
+        Vector2 currentPos = b2body.getPosition();
+        world.destroyBody(b2body);//Destruimos el cuerpo para crear el cuerpo del mario grande.
+
+        BodyDef bdef = new BodyDef();
+        bdef.position.set(currentPos.add(0,10/LibGDXGame.PPM));//pasamos la posicion.
+        bdef.type = BodyDef.BodyType.DynamicBody;
+        b2body = world.createBody(bdef);//Creamos el cuerpo de mario...
+        //Capa con forma que envuelve al mario para las colisiones etc.
+        FixtureDef fixtureDef = new FixtureDef();
+        CircleShape shape = new CircleShape();
+        shape.setRadius(6 / LibGDXGame.PPM);
+        fixtureDef.filter.categoryBits = LibGDXGame.MARIO_BIT;//Asignamos la categoria para las colisiones de Mario.
+        //Asignamos con que puede colisionar.
+        fixtureDef.filter.maskBits = LibGDXGame.GROUND_BIT | LibGDXGame.COIN_BIT | LibGDXGame.BRICK_BIT | LibGDXGame.ENEMY_BIT
+                |LibGDXGame.OBJECT_BIT| LibGDXGame.ENEMY_HEAD_HIT | LibGDXGame.ITEM_BIT;
+        fixtureDef.shape = shape;
+        b2body.createFixture(fixtureDef).setUserData(this);//Asignamos la fisica...
+        shape.setPosition(new Vector2(0,-15/LibGDXGame.PPM));
+        b2body.createFixture(fixtureDef).setUserData(this);//Asignamos la fisica...
+        EdgeShape head = new EdgeShape();
+        //Dos vectores que rodeen la cabeza, desde el eje X -2 (parte trasera de la cabeza) hasta la parte delantera
+        //del sprite de la cabeza X+2 escalado por pixeles por metro.
+        head.set(new Vector2(-2/ LibGDXGame.PPM, 6/LibGDXGame.PPM),new Vector2(2/ LibGDXGame.PPM, 6/LibGDXGame.PPM));
+        fixtureDef.filter.categoryBits = LibGDXGame.MARIO_HEAD_BIT;
+        fixtureDef.shape = head;
+        fixtureDef.isSensor = true;//Definimos un sensor para conocer si colisiona con algun objeto.
+        b2body.createFixture(fixtureDef).setUserData(this);//Asignamos la textura y le damos un nombre.
+        timeToDefineMario = false;//paramos el crecimiento.
     }
 
     /**
@@ -128,6 +245,7 @@ public class Mario extends Sprite {
     public void grow (){
         runGrowAnim = true;
         marioIsBig = true;
+        timeToDefineMario = true;
         setBounds(getX(),getY(),getWidth(),getHeight()*2);//multiplicamos la altura x2 porque el bigMario es mas grande y
         //hemos de modificar el sprite.
         marioPWD.play();//Hacemos sonar el sonido.
@@ -142,6 +260,9 @@ public class Mario extends Sprite {
         TextureRegion region ;
         //Segun el estado de mario...
         switch (currentState){
+            case DEAD:
+                region = marioDead;
+                break;
             case GROWING:
                 region =(TextureRegion) growMario.getKeyFrame(stateTimer);
                 if (growMario.isAnimationFinished(stateTimer))
@@ -183,7 +304,9 @@ public class Mario extends Sprite {
      * @return estado actual del sprite de Mario.
      */
     public States getState (){
-        if (runGrowAnim)//Si esta creciendo devolvemos el estado modificado.
+        if (marioIsDead)
+            return States.DEAD;
+        else if (runGrowAnim)//Si esta creciendo devolvemos el estado modificado.
             return States.GROWING;
         else if (b2body.getLinearVelocity().y > 0 || (b2body.getLinearVelocity().y <0 && previousState == States.JUMP))
             return States.JUMP;//Si el eje Y es mayor a 0 debe de estar saltando,o si el eje Y es menor a 0 y el estado era salto debe de estar cayendo. .
@@ -217,8 +340,20 @@ public class Mario extends Sprite {
         //Dos vectores que rodeen la cabeza, desde el eje X -2 (parte trasera de la cabeza) hasta la parte delantera
         //del sprite de la cabeza X+2 escalado por pixeles por metro.
         head.set(new Vector2(-2/ LibGDXGame.PPM, 6/LibGDXGame.PPM),new Vector2(2/ LibGDXGame.PPM, 6/LibGDXGame.PPM));
+        fixtureDef.filter.categoryBits = LibGDXGame.MARIO_HEAD_BIT;
         fixtureDef.shape = head;
         fixtureDef.isSensor = true;//Definimos un sensor para conocer si colisiona con algun objeto.
-        b2body.createFixture(fixtureDef).setUserData("head");//Asignamos la textura y le damos un nombre.
+        b2body.createFixture(fixtureDef).setUserData(this);//Asignamos la textura y le damos un nombre.
+    }
+
+    public boolean isDead(){
+        return marioIsDead;
+    }
+    public float getStateTimer (){
+        return stateTimer;
+    }
+
+    public boolean isBig() {
+        return marioIsBig;
     }
 }

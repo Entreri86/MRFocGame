@@ -1,5 +1,6 @@
 package com.foc.pmdm.game.Sprites.Enemies;
 
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -11,6 +12,7 @@ import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.utils.Array;
 import com.foc.pmdm.game.LibGDXGame;
 import com.foc.pmdm.game.Screens.GameScreen;
+import com.foc.pmdm.game.Sprites.Mario;
 
 /**
  * Created by entreri on 28/04/17.
@@ -24,6 +26,7 @@ public class Goomba extends Enemy {
     private Array<TextureRegion> frames;
     private boolean setToDestroy;
     private boolean destroyed;
+    private Sound goombaHit;
 
     /**
      * Constructor encargado de llamar al constructor padre (Enemy) y de fijar los valores por defecto de
@@ -34,6 +37,7 @@ public class Goomba extends Enemy {
      */
     public Goomba(GameScreen screen, float x, float y) {
         super(screen, x, y);
+        goombaHit = screen.getManager().get(screen.getMARIO_STOMP());
         frames = new Array<TextureRegion>();
         for (int i= 0;i<2; i++){
             frames.add(new TextureRegion(screen.getAtlas().findRegion("goomba"),i*16,0,16,16));
@@ -80,11 +84,11 @@ public class Goomba extends Enemy {
         bdef.type = BodyDef.BodyType.DynamicBody;
         b2body = world.createBody(bdef);
 
-        //Capa con forma que envuelve al mario para las colisiones etc.
+        //Capa con forma que envuelve al goomba para las colisiones etc.
         FixtureDef fixtureDef = new FixtureDef();
         CircleShape shape = new CircleShape();
         shape.setRadius(6 / LibGDXGame.PPM);
-        fixtureDef.filter.categoryBits = LibGDXGame.ENEMY_BIT;//Asignamos la categoria de Mario.
+        fixtureDef.filter.categoryBits = LibGDXGame.ENEMY_BIT;//Asignamos la categoria de goomba.
         //Asignamos con que puede colisionar.
         fixtureDef.filter.maskBits = LibGDXGame.GROUND_BIT | LibGDXGame.COIN_BIT |
                                      LibGDXGame.BRICK_BIT | LibGDXGame.ENEMY_BIT | LibGDXGame.OBJECT_BIT
@@ -92,7 +96,7 @@ public class Goomba extends Enemy {
 
         fixtureDef.shape = shape;
         b2body.createFixture(fixtureDef).setUserData(this);
-        //Creamos la cabeza para que mario impacte con ella al saltar.
+        //Creamos la cabeza para que Mario impacte con ella al saltar.
         PolygonShape head = new PolygonShape();
         Vector2[] vertices = new Vector2[4];//4 vertices nada mas.
         vertices [0] = new Vector2(-5,8).scl(1/LibGDXGame.PPM);//eje x-5 parte trasera(izquierda) del Sprite 8 eje Y altura escalado.
@@ -104,8 +108,6 @@ public class Goomba extends Enemy {
         fixtureDef.restitution = 0.5f;//Cuando Mario golpee subira esos pixeles de rebote al pisar la cabeza de Goomba.
         fixtureDef.filter.categoryBits = LibGDXGame.ENEMY_HEAD_HIT;
         b2body.createFixture(fixtureDef).setUserData(this);
-
-
     }
 
     /**
@@ -118,12 +120,21 @@ public class Goomba extends Enemy {
         }
     }
 
+    @Override
+    public void onEnemyHit(Enemy enemy) {
+        if (enemy instanceof Turtle && ((Turtle)enemy).currentState == Turtle.State.MOVING_SHELL){
+            setToDestroy = true;//Si la tortuga esta en modo caparazon despues de recibir una patada de mario, matamos al enemigo.
+        } else {
+            reverseVel(true,false);//sino cambiamos la direccion del goomba
+        }
+    }
+
     /**
      * Metodo llamado desde WordlContactListener y world.Step de UserInterface (UI).
      */
     @Override
-    public void hitOnHead() {
+    public void hitOnHead(Mario mario) {
         setToDestroy = true;
-
+        goombaHit.play();
     }
 }

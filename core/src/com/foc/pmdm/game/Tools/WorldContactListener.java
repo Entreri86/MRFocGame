@@ -31,26 +31,21 @@ public class WorldContactListener implements ContactListener {
 
         int colisionDefi = fixtureA.getFilterData().categoryBits | fixtureB.getFilterData().categoryBits;
         //Recogemos el valor de la colision cuando se estrellan dos objetos.
-
-        if (fixtureA.getUserData() == "head" || fixtureB.getUserData() == "head"){//Insertar en Switch!!
-            //Asi conocemos que la colision del Sprite de Mario es con la cabeza.
-            Fixture head = fixtureA.getUserData() == "head" ? fixtureA : fixtureB;
-            //Obtenemos la cabeza testando cual de los objetos es la cabeza.
-            Fixture objeto = head == fixtureA ? fixtureB : fixtureA;
-            //Asignamos el otro objeto en colision (no es la cabeza) como el objeto en colision en si.
-
-            if (objeto.getUserData() instanceof InteractiveTileObject){
-                ((InteractiveTileObject)objeto.getUserData()).onHeadHit();
-                //Sabemos que hay una colision entre objetos con la cabeza del Sprite y ejecutamos el metodo.
-            }
-
-        }//Segun la colision dada...
+        //Segun la colision dada...
         switch (colisionDefi){
+            case LibGDXGame.MARIO_HEAD_BIT | LibGDXGame.BRICK_BIT:
+            case LibGDXGame.MARIO_HEAD_BIT | LibGDXGame.COIN_BIT:
+                if (fixtureA.getFilterData().categoryBits == LibGDXGame.MARIO_HEAD_BIT){
+                    ((InteractiveTileObject)fixtureB.getUserData()).onHeadHit((Mario)fixtureA.getUserData());
+                }else {
+                    ((InteractiveTileObject)fixtureA.getUserData()).onHeadHit((Mario)fixtureB.getUserData());
+                }
+                break;
             case LibGDXGame.ENEMY_HEAD_HIT | LibGDXGame.MARIO_BIT://Si mario colisiona con la cabeza de un Enemigo...
                 if (fixtureA.getFilterData().categoryBits == LibGDXGame.ENEMY_HEAD_HIT){
-                    ((Enemy) fixtureA.getUserData()).hitOnHead();
+                    ((Enemy) fixtureA.getUserData()).hitOnHead((Mario)fixtureB.getUserData());
                 } else {
-                    ((Enemy)fixtureB.getUserData()).hitOnHead();
+                    ((Enemy)fixtureB.getUserData()).hitOnHead((Mario)fixtureA.getUserData());
                 }
                 break;
             case LibGDXGame.ENEMY_BIT | LibGDXGame.OBJECT_BIT://Si el enemigo colisiona con un objeto...
@@ -61,12 +56,15 @@ public class WorldContactListener implements ContactListener {
                 }
                 break;
             case LibGDXGame.MARIO_BIT | LibGDXGame.ENEMY_BIT://Si mario toca a un enemigo (y no en la cabeza) muere.
-                Gdx.app.log("Mario","Fiambre!");
+                if (fixtureA.getFilterData().categoryBits == LibGDXGame.MARIO_BIT){
+                    ((Mario)fixtureA.getUserData()).hit((Enemy) fixtureB.getUserData());
+                }else {
+                    ((Mario)fixtureB.getUserData()).hit((Enemy) fixtureA.getUserData());
+                }
                 break;
-
             case LibGDXGame.ENEMY_BIT | LibGDXGame.ENEMY_BIT://Si dos enemigos chocan...cambiamos la direccion de mov.
-                ((Enemy) fixtureA.getUserData()).reverseVel(true,false);//Cambiamos de direccion eje X.
-                ((Enemy) fixtureB.getUserData()).reverseVel(true,false);//Cambiamos de direccion eje X.
+                ((Enemy) fixtureA.getUserData()).onEnemyHit((Enemy) fixtureB.getUserData());//Cambiamos de direccion eje X.
+                ((Enemy) fixtureB.getUserData()).onEnemyHit((Enemy) fixtureA.getUserData());//Cambiamos de direccion eje X.
                 break;
             case LibGDXGame.ITEM_BIT | LibGDXGame.OBJECT_BIT://Si la seta colisiona con un objeto...
                 if (fixtureA.getFilterData().categoryBits == LibGDXGame.ITEM_BIT){

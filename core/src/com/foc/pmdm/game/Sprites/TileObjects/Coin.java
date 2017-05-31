@@ -12,6 +12,7 @@ import com.foc.pmdm.game.Scenes.UI;
 import com.foc.pmdm.game.Screens.GameScreen;
 import com.foc.pmdm.game.Sprites.Items.ItemDefinition;
 import com.foc.pmdm.game.Sprites.Items.Mushroom;
+import com.foc.pmdm.game.Sprites.Mario;
 
 /**
  * Created by entreri on 25/04/17.
@@ -49,7 +50,7 @@ public class Coin extends InteractiveTileObject {
      * se marca y se bloquea su nuevo uso.
      */
     @Override
-    public void onHeadHit() {
+    public void onHeadHit(Mario mario) {
         Gdx.app.log("Moneda","Colision");
         if (getCell().getTile().getId() == BLANK_COIN_ID){
             marioBump.play();//Cuando golpee el bloque reproducimos sonido.

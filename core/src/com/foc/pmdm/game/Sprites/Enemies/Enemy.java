@@ -5,6 +5,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.World;
 import com.foc.pmdm.game.Screens.GameScreen;
+import com.foc.pmdm.game.Sprites.Mario;
 
 /**
  * Created by entreri on 28/04/17.
@@ -41,7 +42,7 @@ public abstract class Enemy extends Sprite {
     /**
      * Metodo encargado de  gestionar los golpes en la cabeza (muerte) del enemigo.
      */
-    public abstract void hitOnHead();
+    public abstract void hitOnHead(Mario mario);
 
     /**
      * Metodo encargado en cada iteracion de actualizar los datos del enemigo.
@@ -61,4 +62,6 @@ public abstract class Enemy extends Sprite {
             vel.y = -vel.y;
         }
     }
+
+    public abstract void onEnemyHit(Enemy enemy);
 }

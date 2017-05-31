@@ -14,6 +14,7 @@ public class LibGDXGame extends Game {
     public static final int V_HEIGHT = 208;
 	public static final float PPM = 100; //Pixels por metro.
 	//Variables para las colisiones de Box2d.
+	public static final short NOTHING_BIT = 0;
 	public static final short GROUND_BIT = 1;
 	public static final short MARIO_BIT = 2;
 	public static final short BRICK_BIT = 4;

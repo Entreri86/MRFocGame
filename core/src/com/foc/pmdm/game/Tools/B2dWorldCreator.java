@@ -12,6 +12,8 @@ import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Array;
 import com.foc.pmdm.game.LibGDXGame;
 import com.foc.pmdm.game.Screens.GameScreen;
+import com.foc.pmdm.game.Sprites.Enemies.Enemy;
+import com.foc.pmdm.game.Sprites.Enemies.Turtle;
 import com.foc.pmdm.game.Sprites.TileObjects.Brick;
 import com.foc.pmdm.game.Sprites.TileObjects.Coin;
 import com.foc.pmdm.game.Sprites.Enemies.Goomba;
@@ -23,7 +25,7 @@ import com.foc.pmdm.game.Sprites.Enemies.Goomba;
 public class B2dWorldCreator {
     //Array de enemigos.
     private Array<Goomba> goombas;
-
+    private Array<Turtle> turtles;
     /**
      * Constructor encargado de extraer del mapa level1.tmx los objetos, darles forma para la reaccion
      * fisica con el Sprite de Mario.
@@ -95,6 +97,12 @@ public class B2dWorldCreator {
             Rectangle rectangle = ((RectangleMapObject) object).getRectangle();
             goombas.add(new Goomba(screen, rectangle.getX()/ LibGDXGame.PPM, rectangle.getY()/ LibGDXGame.PPM));
         }
+        //Tortugas
+        turtles = new Array<Turtle>();
+        for (MapObject object : tiledMap.getLayers().get(7).getObjects().getByType(RectangleMapObject.class)){
+            Rectangle rectangle = ((RectangleMapObject) object).getRectangle();
+            turtles.add(new Turtle(screen, rectangle.getX()/ LibGDXGame.PPM, rectangle.getY()/ LibGDXGame.PPM));
+        }
     }
 
     /**
@@ -103,5 +111,11 @@ public class B2dWorldCreator {
      */
     public Array<Goomba> getGoombas() {
         return goombas;
+    }
+    public Array<Enemy> getEnemies() {
+        Array<Enemy> enemies = new Array<Enemy>();
+        enemies.addAll(goombas);
+        enemies.addAll(turtles);
+        return enemies;
     }
 }

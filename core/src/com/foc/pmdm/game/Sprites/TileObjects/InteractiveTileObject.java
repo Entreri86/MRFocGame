@@ -17,6 +17,7 @@ import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
 import com.foc.pmdm.game.LibGDXGame;
 import com.foc.pmdm.game.Screens.GameScreen;
+import com.foc.pmdm.game.Sprites.Mario;
 
 /**
  * Created by entreri on 25/04/17.
@@ -71,7 +72,7 @@ public abstract class InteractiveTileObject {
     /**
      * Metodo encargado de gestionar los golpes de Mario con la cabeza en los objetos.
      */
-    public abstract void onHeadHit ();
+    public abstract void onHeadHit (Mario object);
 
 
 

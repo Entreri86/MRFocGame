@@ -79,6 +79,9 @@ public class GameScreen implements Screen {
     private final java.lang.String MARIO_COIN = "audio/sounds/coin.wav";
     private final java.lang.String MARIO_MUSHROOM_PW = "audio/sounds/powerup.wav";
     private final java.lang.String MARIO_MUSHROOM = "audio/sounds/powerup_spawn.wav";
+    private final java.lang.String MARIO_STOMP = "audio/sounds/stomp.wav";
+    private final java.lang.String MARIO_PW_DWN = "audio/sounds/powerdown.wav";
+    private final java.lang.String MARIO_DIE = "audio/sounds/mariodie.wav";
     private AssetManager manager;
 
     /**
@@ -101,10 +104,8 @@ public class GameScreen implements Screen {
         gamePort = new FitViewport(LibGDXGame.V_WIDHT / LibGDXGame.PPM,LibGDXGame.V_HEIGHT / LibGDXGame.PPM,oCamGame);
         //Le pasamos el Sprite por parametro,donde iran los marcadores de puntuaciones y nivel.
         userInterface = new UI(lGame.batch);
-        //////////////////////////////////////////////
         prepareButtons();//Preparamos los botones
         userInterface.addActor(gamePadTable);//los añadimos al stage que hara de inputListener.
-        ///////////////////////////////////////////////
         //Cargamos el mapa y preparamos el renderizado.
         tmxMapLoader = new TmxMapLoader();
         tiledMap = tmxMapLoader.load("level1.tmx");
@@ -117,10 +118,8 @@ public class GameScreen implements Screen {
         player = new Mario (this);//Pasamos la pantalla por parametro.
         //Listener de colisiones y contactos.
         world.setContactListener(new WorldContactListener());
-
         items = new Array<Item>();
         itemsToSpawn = new LinkedBlockingQueue<ItemDefinition>();
-
     }
 
     /**
@@ -158,6 +157,9 @@ public class GameScreen implements Screen {
         manager.load(MARIO_COIN,Sound.class);//Coin.java
         manager.load(MARIO_MUSHROOM,Sound.class);//Seta al recogerla
         manager.load(MARIO_MUSHROOM_PW,Sound.class);//Creciendo a mario.
+        manager.load(MARIO_PW_DWN,Sound.class);//transformandose en pequeño
+        manager.load(MARIO_STOMP,Sound.class);//pisando enemigos
+        manager.load(MARIO_DIE,Sound.class);
         manager.finishLoading();
         music = manager.get(MARIO_MUSIC,Music.class);
         music.setLooping(true);
@@ -169,37 +171,45 @@ public class GameScreen implements Screen {
      * de un teclado.
      */
     public void handleInput (float deltaTime){//Float deltaTime no usado de momento.
-        if (Gdx.input.isKeyJustPressed(Input.Keys.UP)){
-            //Si pulsa arriba...
-            //Aplicamos un impulso hacia arriba en el eje Y de 4 para el salto.
-            player.b2body.applyLinearImpulse(new Vector2(0 , 4f), player.b2body.getWorldCenter(),true);
-        }
-        if ((Gdx.input.isKeyJustPressed(Input.Keys.RIGHT))&& (player.b2body.getLinearVelocity().x <=2)){
-            /**
-             * Si pulsa derecha y la velocidad es menor a 2 se mueve 0,1f el Sprite de Mario en el eje X.
-             */
-            player.b2body.applyLinearImpulse(new Vector2(0.8f,0),player.b2body.getWorldCenter(),true);
-        }
-        if ((Gdx.input.isKeyJustPressed(Input.Keys.LEFT))&& (player.b2body.getLinearVelocity().x >= -2)){
-            /**
-             * Si pulsa izquierda y la velocidad es mayor a -2 (al desplazar a Mario hacia la izquierda se resta en el
-             * eje X en vez de sumar) se mueve -0,1f el Sprite de Mario en el eje X.
-             */
-            player.b2body.applyLinearImpulse(new Vector2(-0.8f,0),player.b2body.getWorldCenter(),true);
+        if (player.currentState != Mario.States.DEAD){
+            if (Gdx.input.isKeyJustPressed(Input.Keys.UP)){
+                //Si pulsa arriba...
+                //Aplicamos un impulso hacia arriba en el eje Y de 4 para el salto.
+                player.b2body.applyLinearImpulse(new Vector2(0 , 4f), player.b2body.getWorldCenter(),true);
+            }
+            if ((Gdx.input.isKeyJustPressed(Input.Keys.RIGHT))&& (player.b2body.getLinearVelocity().x <=2)){
+                /**
+                 * Si pulsa derecha y la velocidad es menor a 2 se mueve 0,1f el Sprite de Mario en el eje X.
+                 */
+                player.b2body.applyLinearImpulse(new Vector2(0.8f,0),player.b2body.getWorldCenter(),true);
+            }
+            if ((Gdx.input.isKeyJustPressed(Input.Keys.LEFT))&& (player.b2body.getLinearVelocity().x >= -2)){
+                /**
+                 * Si pulsa izquierda y la velocidad es mayor a -2 (al desplazar a Mario hacia la izquierda se resta en el
+                 * eje X en vez de sumar) se mueve -0,1f el Sprite de Mario en el eje X.
+                 */
+                player.b2body.applyLinearImpulse(new Vector2(-0.8f,0),player.b2body.getWorldCenter(),true);
+            }
         }
     }
 
     /**
+     * Metodo encargado de parar la musica.
+     */
+    public void stopMusic(){
+        music.stop();
+    }
+    /**
      * Metodo encargado de preparar y gestionar los botones y sus toques en la pantalla.
      */
     public void prepareButtons(){
+        //TODO: video 27 muerte de mario 6:53.
         //Creamos el skin de los botones recogiendo el fichero json
         Skin mySkin = new Skin(Gdx.files.internal("skin/glassy-ui.json"));
         //Creamos nueva tabla para los botones del "gamepad rustico"
         gamePadTable = new Table();
         gamePadTable.bottom();//Centrado en la parte inferior
         gamePadTable.setFillParent(true);//Expandido como el padre.
-
         buttonDer  = new TextButton("Der.",mySkin,"small");
         buttonDer.addListener(new InputListener(){
             @Override
@@ -208,8 +218,10 @@ public class GameScreen implements Screen {
             }
             @Override
             public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                if (buttonDer.isPressed()==true){
-                    player.b2body.applyLinearImpulse(new Vector2(0.8f,0),player.b2body.getWorldCenter(),true);
+                if (player.currentState != Mario.States.DEAD){
+                    if (buttonDer.isPressed()==true){
+                        player.b2body.applyLinearImpulse(new Vector2(0.8f,0),player.b2body.getWorldCenter(),true);
+                    }
                 }
                 return true;
             }
@@ -222,8 +234,10 @@ public class GameScreen implements Screen {
             }
             @Override
             public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                if (buttonIzq.isPressed()==true){
-                    player.b2body.applyLinearImpulse(new Vector2(-0.8f,0),player.b2body.getWorldCenter(),true);
+                if (player.currentState != Mario.States.DEAD){
+                    if (buttonIzq.isPressed()==true){
+                        player.b2body.applyLinearImpulse(new Vector2(-0.8f,0),player.b2body.getWorldCenter(),true);
+                    }
                 }
                 return true;
             }
@@ -236,8 +250,10 @@ public class GameScreen implements Screen {
             }
             @Override
             public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
-                if (buttonJum.isPressed()==true){
-                    player.b2body.applyLinearImpulse(new Vector2(0 , 4f), player.b2body.getWorldCenter(),true);
+                if (player.currentState != Mario.States.DEAD){
+                    if (buttonJum.isPressed()==true){
+                        player.b2body.applyLinearImpulse(new Vector2(0 , 4f), player.b2body.getWorldCenter(),true);
+                    }
                 }
                 return true;
             }
@@ -261,7 +277,7 @@ public class GameScreen implements Screen {
         world.step(1/60f,6,2);//Bucle del juego principal.
         player.update(deltaTime);//Actualizamos el personaje (sprite).
         //Actualizamos los goombas iniciandolos por cercania.
-        for (Enemy enemy: worldCreator.getGoombas()){
+        for (Enemy enemy: worldCreator.getEnemies()){
             enemy.update(deltaTime);
             if (enemy.getX() < player.getX() + 224/LibGDXGame.PPM){
                 enemy.b2body.setActive(true);//Activamos los Goomba por proximidad con el jugador.
@@ -272,9 +288,10 @@ public class GameScreen implements Screen {
             item.update(deltaTime);
         }
         userInterface.update(deltaTime);//
-        //Solo realizamos el seguimiento de la camara en el eje X (lateral) y no en los saltos.
-        oCamGame.position.x = player.b2body.getPosition().x;
-
+        if (player.currentState != Mario.States.DEAD){
+            //Solo realizamos el seguimiento de la camara en el eje X (lateral) y no en los saltos.
+            oCamGame.position.x = player.b2body.getPosition().x;
+        }
         oCamGame.update(); //Actualizamos la camara en cada ciclo de renderizacion.
         lGame.batch.setProjectionMatrix(oCamGame.combined);
         renderer.setView(oCamGame);//Solo renderiza lo que la camara actualmente ve.
@@ -292,29 +309,41 @@ public class GameScreen implements Screen {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         //Renderizamos el mapa del juego.
         renderer.render();
-
         //Renderizado de los objetos de Box2d (bloques etc.)
         b2dr.render(world,oCamGame.combined);//Renderizamos con la proyeccion Matrix combinada.
         //Fijamos en el Sprite lo que la camara actualmente esta viendo.
         lGame.batch.setProjectionMatrix(oCamGame.combined);
         lGame.batch.begin();
-        player.draw(lGame.batch);//Dibujamos a mario y los goombas.
-        for (Enemy enemy: worldCreator.getGoombas()){
+        player.draw(lGame.batch);//Dibujamos a mario, los goombas y tortugas.
+        for (Enemy enemy: worldCreator.getEnemies()){
             enemy.draw(lGame.batch);
         }
         //Dibujamos los objetos especiales...
         for (Item item : items){
             item.draw(lGame.batch);
         }
-
         lGame.batch.end();
         userInterface.stage.draw();
+        if (gameOver()){
+            lGame.setScreen(new GameOverScreen(lGame));
+            dispose();
+        }
     }
 
     /**
-     *
-     * @param width
-     * @param height
+     * Metodo encargado de comprobar si la partida esta por terminar.
+     * @return true en caso de tener que mostrar la pantalla de GameOver, false en caso contrario.
+     */
+    public boolean gameOver(){
+        if (player.currentState == Mario.States.DEAD && player.getStateTimer() > 3){
+            return true;
+        }
+        return false;
+    }
+    /**
+     * Metodo encargado de adaptar las medidas a la pantalla.
+     * @param width ancho.
+     * @param height alto.
      */
     @Override
     public void resize(int width, int height) {
@@ -375,19 +404,15 @@ public class GameScreen implements Screen {
     public TextureAtlas getAtlas (){
         return atlas;
     }
-
     public java.lang.String getMARIO_MUSIC() {
         return MARIO_MUSIC;
     }
-
     public java.lang.String getMARIO_BUMP() {
         return MARIO_BUMP;
     }
-
     public java.lang.String getMARIO_BREAK() {
         return MARIO_BREAK;
     }
-
     public java.lang.String getMARIO_COIN() {
         return MARIO_COIN;
     }
@@ -396,5 +421,14 @@ public class GameScreen implements Screen {
     }
     public String getMARIO_MUSHROOM_PW() {
         return MARIO_MUSHROOM_PW;
+    }
+    public String getMARIO_PW_DWN() {
+        return MARIO_PW_DWN;
+    }
+    public String getMARIO_STOMP() {
+        return MARIO_STOMP;
+    }
+    public String getMARIO_DIE() {
+        return MARIO_DIE;
     }
 }

@@ -8,6 +8,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.foc.pmdm.game.LibGDXGame;
 import com.foc.pmdm.game.Scenes.UI;
 import com.foc.pmdm.game.Screens.GameScreen;
+import com.foc.pmdm.game.Sprites.Mario;
 
 /**
  * Created by entreri on 25/04/17.
@@ -17,6 +18,7 @@ public class Brick extends InteractiveTileObject {
     //Asset para el sonido del objeto, temporal en la tarea global pasar por referencias.
     private AssetManager assetManager;
     private Sound marioBreak;
+    private Sound marioBump;
     /**
      * Constructor encargado de inicializar los atributos y preparar la textura del objeto a mostrar
      * mediante llamadas a otros metodos.
@@ -28,6 +30,7 @@ public class Brick extends InteractiveTileObject {
         fixture.setUserData(this);//Asignamos datos personalizados para el objeto.
         assetManager = screen.getManager();
         marioBreak = assetManager.get(screen.getMARIO_BREAK(),Sound.class);
+        marioBump = assetManager.get(screen.getMARIO_BUMP(),Sound.class);
         //prepareManager ();//Musica
         setCategoryFilter(LibGDXGame.BRICK_BIT);//Asignamos categoria de bits.
     }
@@ -37,12 +40,17 @@ public class Brick extends InteractiveTileObject {
      * se marca y se remueve.
      */
     @Override
-    public void onHeadHit() {
-        Gdx.app.log("Bloque","Colision");
-        setCategoryFilter(LibGDXGame.DESTROY_BIT);//Marcamos el filtro para que no se pueda volver a colisionar con el objeto
-        getCell().setTile(null); //Borramos el objeto colisionado.
-        UI.addScore(100);//Subimos puntuacion.
-        marioBreak.play();//Cuando golpee el bloque reproducimos sonido.
+    public void onHeadHit(Mario mario) {
+        if (mario.isBig()){
+            Gdx.app.log("Bloque","Colision");
+            setCategoryFilter(LibGDXGame.DESTROY_BIT);//Marcamos el filtro para que no se pueda volver a colisionar con el objeto
+            getCell().setTile(null); //Borramos el objeto colisionado.
+            UI.addScore(100);//Subimos puntuacion.
+            marioBreak.play();//Cuando golpee el bloque reproducimos sonido.
+        } else{
+            marioBump.play();
+        }
+
     }
 
     /**
