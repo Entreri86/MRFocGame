@@ -4,6 +4,7 @@ package com.foc.pmdm.game;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.foc.pmdm.game.Screens.GameScreen;
+import com.foc.pmdm.game.Screens.SplashScreen;
 
 /**
  * Created by entreri on 16/04/17.
@@ -32,7 +33,7 @@ public class LibGDXGame extends Game {
 	public void create () {
 		batch = new SpriteBatch();
 
-		setScreen(new GameScreen(this));//Le pasamos el mismo juego en si de pantalla.
+		setScreen(new SplashScreen(this));//Le pasamos el mismo juego en si de pantalla.
 	}
 
 	/**
